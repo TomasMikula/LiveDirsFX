@@ -17,7 +17,6 @@ group = 'org.fxmisc.livedirs'
 
 dependencies {
     compile group: 'org.reactfx', name: 'reactfx', version: '1.0.0-SNAPSHOT'
-    testCompile group: 'junit', name: 'junit', version: '4.+'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
