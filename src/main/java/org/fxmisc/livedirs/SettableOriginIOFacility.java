@@ -1,6 +1,10 @@
 package org.fxmisc.livedirs;
 
-public interface SettableOriginIOFacility extends IOFacility {
-    void setOrigin(Object origin);
-    Object getOrigin();
+/**
+ *
+ * @param <O> origin type
+ */
+public interface SettableOriginIOFacility<O> extends IOFacility {
+    void setOrigin(O origin);
+    O getOrigin();
 }

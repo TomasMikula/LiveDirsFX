@@ -4,36 +4,40 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.concurrent.CompletionStage;
 
-public interface OriginTrackingIOFacility {
+/**
+ *
+ * @param <O> origin type
+ */
+public interface OriginTrackingIOFacility<O> {
 
-    CompletionStage<Void> createFile(Path file, Object origin);
+    CompletionStage<Void> createFile(Path file, O origin);
 
-    CompletionStage<Void> createDirectory(Path dir, Object origin);
+    CompletionStage<Void> createDirectory(Path dir, O origin);
 
     CompletionStage<Void> saveTextFile(
             Path file,
             String content,
             Charset charset,
-            Object origin);
+            O origin);
 
     CompletionStage<Void> saveBinaryFile(
             Path file,
             byte[] content,
-            Object origin);
+            O origin);
 
     /**
      * Deletes file or empty directory.
      */
-    CompletionStage<Void> delete(Path fileOrDir, Object origin);
+    CompletionStage<Void> delete(Path fileOrDir, O origin);
 
-    CompletionStage<Void> deleteTree(Path root, Object origin);
+    CompletionStage<Void> deleteTree(Path root, O origin);
 
     CompletionStage<String> loadTextFile(Path file, Charset charset);
 
     CompletionStage<byte[]> loadBinaryFile(Path file);
 
     default CompletionStage<Void> saveUTF8File(
-            Path file, String content, Object origin) {
+            Path file, String content, O origin) {
         Charset utf8 = Charset.forName("UTF-8");
         return saveTextFile(file, content, utf8, origin);
     }
@@ -43,23 +47,23 @@ public interface OriginTrackingIOFacility {
         return loadTextFile(file, utf8);
     }
 
-    default SettableOriginIOFacility asIOFacility() {
+    default SettableOriginIOFacility<O> asIOFacility() {
         return asIOFacility(null);
     }
 
-    default SettableOriginIOFacility asIOFacility(Object initialOrigin) {
-        OriginTrackingIOFacility self = this;
+    default SettableOriginIOFacility<O> asIOFacility(O initialOrigin) {
+        OriginTrackingIOFacility<O> self = this;
 
-        return new SettableOriginIOFacility() {
-            private Object origin = initialOrigin;
+        return new SettableOriginIOFacility<O>() {
+            private O origin = initialOrigin;
 
             @Override
-            public void setOrigin(Object origin) {
+            public void setOrigin(O origin) {
                 this.origin = origin;
             }
 
             @Override
-            public Object getOrigin() {
+            public O getOrigin() {
                 return origin;
             }
 

@@ -160,18 +160,18 @@ class ParentChild {
     public PathItem getChild() { return child; }
 }
 
-interface Reporter {
-    void reportCreation(Path baseDir, Path relPath, Object origin);
-    void reportDeletion(Path baseDir, Path relPath, Object origin);
-    void reportModification(Path baseDir, Path relPath, Object origin);
+interface Reporter<O> {
+    void reportCreation(Path baseDir, Path relPath, O origin);
+    void reportDeletion(Path baseDir, Path relPath, O origin);
+    void reportModification(Path baseDir, Path relPath, O origin);
     void reportError(Throwable error);
 }
 
-class TopLevelDirItem extends DirItem {
+class TopLevelDirItem<O> extends DirItem {
     private final GraphicFactory graphicFactory;
-    private final Reporter reporter;
+    private final Reporter<O> reporter;
 
-    TopLevelDirItem(Path path, GraphicFactory graphicFactory, Reporter reporter) {
+    TopLevelDirItem(Path path, GraphicFactory graphicFactory, Reporter<O> reporter) {
         super(path, graphicFactory.create(path, true));
         this.graphicFactory = graphicFactory;
         this.reporter = reporter;
@@ -198,29 +198,29 @@ class TopLevelDirItem extends DirItem {
         }
     }
 
-    private void updateFile(Path relPath, FileTime lastModified, Object origin) {
+    private void updateFile(Path relPath, FileTime lastModified, O origin) {
         PathItem item = resolve(relPath);
         if(item == null || item.isDirectory()) {
             sync(PathNode.file(getValue().resolve(relPath), lastModified), origin);
         }
     }
 
-    public void addFile(Path relPath, FileTime lastModified, Object origin) {
+    public void addFile(Path relPath, FileTime lastModified, O origin) {
         updateFile(relPath, lastModified, origin);
     }
 
-    public void updateModificationTime(Path relPath, FileTime lastModified, Object origin) {
+    public void updateModificationTime(Path relPath, FileTime lastModified, O origin) {
         updateFile(relPath, lastModified, origin);
     }
 
-    public void addDirectory(Path relPath, Object origin) {
+    public void addDirectory(Path relPath, O origin) {
         PathItem item = resolve(relPath);
         if(item == null || !item.isDirectory()) {
             sync(PathNode.directory(getValue().resolve(relPath), Collections.emptyList()), origin);
         }
     }
 
-    public void sync(PathNode tree, Object origin) {
+    public void sync(PathNode tree, O origin) {
         Path path = tree.getPath();
         Path relPath = getValue().relativize(path);
         ParentChild pc = resolveInParent(relPath);
@@ -240,7 +240,7 @@ class TopLevelDirItem extends DirItem {
         }
     }
 
-    private void syncContent(DirItem dir, PathNode tree, Object origin) {
+    private void syncContent(DirItem dir, PathNode tree, O origin) {
         Set<Path> desiredChildren = new HashSet<>();
         for(PathNode ch: tree.getChildren()) {
             desiredChildren.add(ch.getPath());
@@ -261,7 +261,7 @@ class TopLevelDirItem extends DirItem {
         }
     }
 
-    private void syncChild(DirItem parent, Path childName, PathNode tree, Object origin) {
+    private void syncChild(DirItem parent, Path childName, PathNode tree, O origin) {
         PathItem child = parent.getRelChild(childName);
         if(child != null && child.isDirectory() != tree.isDirectory()) {
             removeNode(child, null);
@@ -286,19 +286,19 @@ class TopLevelDirItem extends DirItem {
         }
     }
 
-    public void remove(Path relPath, Object origin) {
+    public void remove(Path relPath, O origin) {
         PathItem item = resolve(relPath);
         if(item != null) {
             removeNode(item, origin);
         }
     }
 
-    private void removeNode(TreeItem<Path> node, Object origin) {
+    private void removeNode(TreeItem<Path> node, O origin) {
         signalDeletionRecursively(node, origin);
         node.getParent().getChildren().remove(node);
     }
 
-    private void signalDeletionRecursively(TreeItem<Path> node, Object origin) {
+    private void signalDeletionRecursively(TreeItem<Path> node, O origin) {
         for(TreeItem<Path> child: node.getChildren()) {
             signalDeletionRecursively(child, origin);
         }
