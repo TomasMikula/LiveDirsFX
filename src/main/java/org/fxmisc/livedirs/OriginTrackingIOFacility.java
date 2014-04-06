@@ -47,25 +47,10 @@ public interface OriginTrackingIOFacility<O> {
         return loadTextFile(file, utf8);
     }
 
-    default SettableOriginIOFacility<O> asIOFacility() {
-        return asIOFacility(null);
-    }
-
-    default SettableOriginIOFacility<O> asIOFacility(O initialOrigin) {
+    default IOFacility withOrigin(O origin) {
         OriginTrackingIOFacility<O> self = this;
 
-        return new SettableOriginIOFacility<O>() {
-            private O origin = initialOrigin;
-
-            @Override
-            public void setOrigin(O origin) {
-                this.origin = origin;
-            }
-
-            @Override
-            public O getOrigin() {
-                return origin;
-            }
+        return new IOFacility() {
 
             @Override
             public CompletionStage<Void> createFile(Path file) {
