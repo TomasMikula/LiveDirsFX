@@ -29,7 +29,7 @@ public class LiveDirs<O> implements AutoCloseable {
     private final EventStream<Throwable> errors;
     private final Executor clientThreadExecutor;
     private final DirWatcher dirWatcher;
-    private final DirectoryModel<O> model;
+    private final LiveDirsModel<O> model;
     private final LiveDirsIO<O> io;
     private final O originExternal;
 
@@ -41,7 +41,7 @@ public class LiveDirs<O> implements AutoCloseable {
         this.originExternal = originExternal;
         this.clientThreadExecutor = clientThreadExecutor;
         this.dirWatcher = new DirWatcher(clientThreadExecutor);
-        this.model = new DirectoryModel<>(originExternal);
+        this.model = new LiveDirsModel<>(originExternal);
         this.io = new LiveDirsIO<>(dirWatcher, model, clientThreadExecutor);
 
         this.dirWatcher.signalledKeys().subscribe(key -> processKey(key));
@@ -50,7 +50,7 @@ public class LiveDirs<O> implements AutoCloseable {
 
     public EventStream<Throwable> errors() { return errors; }
 
-    public DirectoryModel<O> model() { return model; }
+    public LiveDirsModel<O> model() { return model; }
 
     public OriginTrackingIOFacility<O> io() { return io; }
 
@@ -83,7 +83,7 @@ public class LiveDirs<O> implements AutoCloseable {
 
     private void processKey(WatchKey key) {
         Path dir = (Path) key.watchable();
-        if(!model.contains(dir)) {
+        if(!model.containsPrefixOf(dir)) {
             key.cancel();
         } else {
             List<WatchEvent<?>> events = key.pollEvents();
@@ -139,7 +139,7 @@ public class LiveDirs<O> implements AutoCloseable {
     }
 
     private void handleDirCreation(Path path, O origin) {
-        if(model.contains(path)) {
+        if(model.containsPrefixOf(path)) {
             model.addDirectory(path, origin);
             dirWatcher.watchOrLogError(path);
         }

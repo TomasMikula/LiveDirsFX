@@ -8,10 +8,10 @@ import java.util.concurrent.Executor;
 
 class LiveDirsIO<O> implements OriginTrackingIOFacility<O> {
     private final DirWatcher dirWatcher;
-    private final DirectoryModel<O> model;
+    private final LiveDirsModel<O> model;
     private final Executor clientThreadExecutor;
 
-    public LiveDirsIO(DirWatcher dirWatcher, DirectoryModel<O> model, Executor clientThreadExecutor) {
+    public LiveDirsIO(DirWatcher dirWatcher, LiveDirsModel<O> model, Executor clientThreadExecutor) {
         this.dirWatcher = dirWatcher;
         this.model = model;
         this.clientThreadExecutor = clientThreadExecutor;
@@ -34,7 +34,7 @@ class LiveDirsIO<O> implements OriginTrackingIOFacility<O> {
         CompletableFuture<Void> created = new CompletableFuture<>();
         dirWatcher.createDirectory(dir,
                 () -> {
-                    if(model.contains(dir)) {
+                    if(model.containsPrefixOf(dir)) {
                         model.addDirectory(dir, origin);
                         dirWatcher.watchOrLogError(dir);
                     }
