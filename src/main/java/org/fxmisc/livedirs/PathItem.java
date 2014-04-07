@@ -12,7 +12,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.TreeItem;
 
-import org.fxmisc.livedirs.LiveDirs.GraphicFactory;
+import org.fxmisc.livedirs.DirectoryModel.GraphicFactory;
 
 abstract class PathItem extends TreeItem<Path> {
     protected PathItem(Path path, Node graphic) {
