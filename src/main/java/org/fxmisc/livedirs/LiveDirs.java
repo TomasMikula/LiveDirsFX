@@ -3,7 +3,6 @@ package org.fxmisc.livedirs;
 import static java.nio.file.StandardWatchEventKinds.*;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
@@ -11,7 +10,6 @@ import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
@@ -25,13 +23,14 @@ import org.reactfx.EventStreams;
  *
  * @param <O> type of the origin of file changes.
  */
-public class LiveDirs<O> implements AutoCloseable, OriginTrackingIOFacility<O> {
+public class LiveDirs<O> implements AutoCloseable {
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
     private final Executor clientThreadExecutor;
     private final DirWatcher dirWatcher;
     private final DirectoryModel<O> model;
+    private final LiveDirsIO<O> io;
     private final O originExternal;
 
     public LiveDirs(O originExternal) throws IOException {
@@ -43,6 +42,7 @@ public class LiveDirs<O> implements AutoCloseable, OriginTrackingIOFacility<O> {
         this.clientThreadExecutor = clientThreadExecutor;
         this.dirWatcher = new DirWatcher(clientThreadExecutor);
         this.model = new DirectoryModel<>(originExternal);
+        this.io = new LiveDirsIO<>(dirWatcher, model, clientThreadExecutor);
 
         this.dirWatcher.signalledKeys().subscribe(key -> processKey(key));
         this.errors = EventStreams.merge(dirWatcher.errors(), model.errors(), localErrors);
@@ -51,6 +51,8 @@ public class LiveDirs<O> implements AutoCloseable, OriginTrackingIOFacility<O> {
     public EventStream<Throwable> errors() { return errors; }
 
     public DirectoryModel<O> model() { return model; }
+
+    public OriginTrackingIOFacility<O> io() { return io; }
 
     public void addTopLevelDirectory(Path dir) {
         if(!dir.isAbsolute()) {
@@ -68,102 +70,15 @@ public class LiveDirs<O> implements AutoCloseable, OriginTrackingIOFacility<O> {
 
     public CompletionStage<Void> refresh(Path path) {
         return wrap(dirWatcher.getTree(path))
-                .thenAcceptAsync(tree -> { model.sync(tree); watchTree(tree); }, clientThreadExecutor);
+                .thenAcceptAsync(tree -> {
+                    model.sync(tree);
+                    watchTree(tree);
+                }, clientThreadExecutor);
     }
 
     @Override
     public void close() {
         dirWatcher.shutdown();
-    }
-
-    @Override
-    public CompletionStage<Void> createFile(Path file, O origin) {
-        CompletableFuture<Void> created = new CompletableFuture<>();
-        dirWatcher.createFile(file,
-                lastModified -> {
-                    model.addFile(file, origin, lastModified);
-                    created.complete(null);
-                },
-                error -> created.completeExceptionally(error));
-        return wrap(created);
-    }
-
-    @Override
-    public CompletionStage<Void> createDirectory(Path dir, O origin) {
-        CompletableFuture<Void> created = new CompletableFuture<>();
-        dirWatcher.createDirectory(dir,
-                () -> {
-                    handleDirCreation(dir, origin);
-                    created.complete(null);
-                },
-                error -> created.completeExceptionally(error));
-        return wrap(created);
-    }
-
-    @Override
-    public CompletionStage<Void> saveTextFile(Path file, String content, Charset charset, O origin) {
-        CompletableFuture<Void> saved = new CompletableFuture<>();
-        dirWatcher.saveTextFile(file, content, charset,
-                lastModified -> {
-                    model.updateModificationTime(file, lastModified, origin);
-                    saved.complete(null);
-                },
-                error -> saved.completeExceptionally(error));
-        return wrap(saved);
-    }
-
-    @Override
-    public CompletionStage<Void> saveBinaryFile(Path file, byte[] content, O origin) {
-        CompletableFuture<Void> saved = new CompletableFuture<>();
-        dirWatcher.saveBinaryFile(file, content,
-                lastModified -> {
-                    model.updateModificationTime(file, lastModified, origin);
-                    saved.complete(null);
-                },
-                error -> saved.completeExceptionally(error));
-        return wrap(saved);
-    }
-
-    @Override
-    public CompletionStage<Void> delete(Path file, O origin) {
-        CompletableFuture<Void> deleted = new CompletableFuture<>();
-        dirWatcher.deleteFileOrEmptyDirectory(file,
-                () -> {
-                    model.delete(file, origin);
-                    deleted.complete(null);
-                },
-                error -> deleted.completeExceptionally(error));
-        return wrap(deleted);
-    }
-
-    @Override
-    public CompletionStage<Void> deleteTree(Path root, O origin) {
-        CompletableFuture<Void> deleted = new CompletableFuture<>();
-        dirWatcher.deleteTree(root,
-                () -> {
-                    model.delete(root, origin);
-                    deleted.complete(null);
-                },
-                error -> deleted.completeExceptionally(error));
-        return wrap(deleted);
-    }
-
-    @Override
-    public CompletionStage<String> loadTextFile(Path file, Charset charset) {
-        CompletableFuture<String> loaded = new CompletableFuture<>();
-        dirWatcher.loadTextFile(file, charset,
-                content -> loaded.complete(content),
-                error -> loaded.completeExceptionally(error));
-        return wrap(loaded);
-    }
-
-    @Override
-    public CompletionStage<byte[]> loadBinaryFile(Path file) {
-        CompletableFuture<byte[]> loaded = new CompletableFuture<>();
-        dirWatcher.loadBinaryFile(file,
-                content -> loaded.complete(content),
-                error -> loaded.completeExceptionally(error));
-        return wrap(loaded);
     }
 
     private void processKey(WatchKey key) {
