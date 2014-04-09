@@ -21,27 +21,27 @@ import org.reactfx.EventStreams;
 
 /**
  *
- * @param <O> type of the origin of file changes.
+ * @param <I> type of the initiator of I/O actions.
  */
-public class LiveDirs<O> implements AutoCloseable {
+public class LiveDirs<I> {
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
     private final Executor clientThreadExecutor;
     private final DirWatcher dirWatcher;
-    private final LiveDirsModel<O> model;
-    private final LiveDirsIO<O> io;
-    private final O originExternal;
+    private final LiveDirsModel<I> model;
+    private final LiveDirsIO<I> io;
+    private final I externalInitiator;
 
-    public LiveDirs(O originExternal) throws IOException {
-        this(originExternal, Platform::runLater);
+    public LiveDirs(I externalInitiator) throws IOException {
+        this(externalInitiator, Platform::runLater);
     }
 
-    public LiveDirs(O originExternal, Executor clientThreadExecutor) throws IOException {
-        this.originExternal = originExternal;
+    public LiveDirs(I externalInitiator, Executor clientThreadExecutor) throws IOException {
+        this.externalInitiator = externalInitiator;
         this.clientThreadExecutor = clientThreadExecutor;
         this.dirWatcher = new DirWatcher(clientThreadExecutor);
-        this.model = new LiveDirsModel<>(originExternal);
+        this.model = new LiveDirsModel<>(externalInitiator);
         this.io = new LiveDirsIO<>(dirWatcher, model, clientThreadExecutor);
 
         this.dirWatcher.signalledKeys().subscribe(key -> processKey(key));
@@ -50,9 +50,9 @@ public class LiveDirs<O> implements AutoCloseable {
 
     public EventStream<Throwable> errors() { return errors; }
 
-    public LiveDirsModel<O> model() { return model; }
+    public DirectoryModel<I> model() { return model; }
 
-    public OriginTrackingIOFacility<O> io() { return io; }
+    public InitiatorTrackingIOFacility<I> io() { return io; }
 
     public void addTopLevelDirectory(Path dir) {
         if(!dir.isAbsolute()) {
@@ -76,8 +76,7 @@ public class LiveDirs<O> implements AutoCloseable {
                 }, clientThreadExecutor);
     }
 
-    @Override
-    public void close() {
+    public void dispose() {
         dirWatcher.shutdown();
     }
 
@@ -98,7 +97,7 @@ public class LiveDirs<O> implements AutoCloseable {
             }
 
             if(!key.reset()) {
-                model.delete(dir, originExternal);
+                model.delete(dir, externalInitiator);
             }
         }
     }
@@ -111,45 +110,45 @@ public class LiveDirs<O> implements AutoCloseable {
         Kind<Path> kind = event.kind();
 
         if(kind == ENTRY_MODIFY) {
-            handleModification(child, originExternal);
+            handleModification(child, externalInitiator);
         } else if(kind == ENTRY_CREATE) {
-            handleCreation(child, originExternal);
+            handleCreation(child, externalInitiator);
         } else if(kind == ENTRY_DELETE) {
-            model.delete(child, originExternal);
+            model.delete(child, externalInitiator);
         } else {
             throw new AssertionError("unreachable code");
         }
     }
 
-    private void handleCreation(Path path, O origin) {
+    private void handleCreation(Path path, I initiator) {
         if(Files.isDirectory(path)) {
-            handleDirCreation(path, origin);
+            handleDirCreation(path, initiator);
         } else {
-            handleFileCreation(path, origin);
+            handleFileCreation(path, initiator);
         }
     }
 
-    private void handleFileCreation(Path path, O origin) {
+    private void handleFileCreation(Path path, I initiator) {
         try {
             FileTime timestamp = Files.getLastModifiedTime(path);
-            model.addFile(path, origin, timestamp);
+            model.addFile(path, initiator, timestamp);
         } catch (IOException e) {
             localErrors.push(e);
         }
     }
 
-    private void handleDirCreation(Path path, O origin) {
+    private void handleDirCreation(Path path, I initiator) {
         if(model.containsPrefixOf(path)) {
-            model.addDirectory(path, origin);
+            model.addDirectory(path, initiator);
             dirWatcher.watchOrLogError(path);
         }
         refreshOrLogError(path);
     }
 
-    private void handleModification(Path path, O origin) {
+    private void handleModification(Path path, I initiator) {
         try {
             FileTime timestamp = Files.getLastModifiedTime(path);
-            model.updateModificationTime(path, timestamp, origin);
+            model.updateModificationTime(path, timestamp, initiator);
         } catch (IOException e) {
             localErrors.push(e);
         }

@@ -11,36 +11,36 @@ import org.reactfx.EventSource;
 import org.reactfx.EventStream;
 import org.reactfx.EventStreams;
 
-class LiveDirsModel<O> implements DirectoryModel<O> {
+class LiveDirsModel<I> implements DirectoryModel<I> {
 
     private final TreeItem<Path> root = new TreeItem<>();
-    private final EventSource<Update<O>> creations = new EventSource<>();
-    private final EventSource<Update<O>> deletions = new EventSource<>();
-    private final EventSource<Update<O>> modifications = new EventSource<>();
-    private final EventStream<Update<O>> updates = EventStreams.merge(
+    private final EventSource<Update<I>> creations = new EventSource<>();
+    private final EventSource<Update<I>> deletions = new EventSource<>();
+    private final EventSource<Update<I>> modifications = new EventSource<>();
+    private final EventStream<Update<I>> updates = EventStreams.merge(
             creations, deletions, modifications);
     private final EventSource<Throwable> errors = new EventSource<>();
-    private final Reporter<O> reporter;
-    private final O defaultOrigin;
+    private final Reporter<I> reporter;
+    private final I defaultInitiator;
 
     private GraphicFactory graphicFactory = DEFAULT_GRAPHIC_FACTORY;
 
-    public LiveDirsModel(O defaultOrigin) {
-        this.defaultOrigin = defaultOrigin;
-        this.reporter = new Reporter<O>() {
+    public LiveDirsModel(I defaultInitiator) {
+        this.defaultInitiator = defaultInitiator;
+        this.reporter = new Reporter<I>() {
             @Override
-            public void reportCreation(Path baseDir, Path relPath, O origin) {
-                creations.push(Update.creation(baseDir, relPath, origin));
+            public void reportCreation(Path baseDir, Path relPath, I initiator) {
+                creations.push(Update.creation(baseDir, relPath, initiator));
             }
 
             @Override
-            public void reportDeletion(Path baseDir, Path relPath, O origin) {
-                deletions.push(Update.deletion(baseDir, relPath, origin));
+            public void reportDeletion(Path baseDir, Path relPath, I initiator) {
+                deletions.push(Update.deletion(baseDir, relPath, initiator));
             }
 
             @Override
-            public void reportModification(Path baseDir, Path relPath, O origin) {
-                modifications.push(Update.modification(baseDir, relPath, origin));
+            public void reportModification(Path baseDir, Path relPath, I initiator) {
+                modifications.push(Update.modification(baseDir, relPath, initiator));
             }
 
             @Override
@@ -51,10 +51,10 @@ class LiveDirsModel<O> implements DirectoryModel<O> {
     }
 
     @Override public TreeItem<Path> getRoot() { return root; }
-    @Override public EventStream<Update<O>> creations() { return creations; }
-    @Override public EventStream<Update<O>> deletions() { return deletions; }
-    @Override public EventStream<Update<O>> modifications() { return modifications; }
-    @Override public EventStream<Update<O>> updates() { return updates; }
+    @Override public EventStream<Update<I>> creations() { return creations; }
+    @Override public EventStream<Update<I>> deletions() { return deletions; }
+    @Override public EventStream<Update<I>> modifications() { return modifications; }
+    @Override public EventStream<Update<I>> updates() { return updates; }
     @Override public EventStream<Throwable> errors() { return errors; }
 
     @Override
@@ -72,52 +72,52 @@ class LiveDirsModel<O> implements DirectoryModel<O> {
         root.getChildren().add(new TopLevelDirItem<>(dir, graphicFactory, reporter));
     }
 
-    void updateModificationTime(Path path, FileTime lastModified, O origin) {
-        for(TopLevelDirItem<O> root: getTopLevelAncestorsNonEmpty(path)) {
+    void updateModificationTime(Path path, FileTime lastModified, I initiator) {
+        for(TopLevelDirItem<I> root: getTopLevelAncestorsNonEmpty(path)) {
             Path relPath = root.getValue().relativize(path);
-            root.updateModificationTime(relPath, lastModified, origin);
+            root.updateModificationTime(relPath, lastModified, initiator);
         }
     }
 
-    void addDirectory(Path path, O origin) {
-        List<TopLevelDirItem<O>> roots = getTopLevelAncestors(path);
-        for(TopLevelDirItem<O> root: roots) {
+    void addDirectory(Path path, I initiator) {
+        List<TopLevelDirItem<I>> roots = getTopLevelAncestors(path);
+        for(TopLevelDirItem<I> root: roots) {
             Path relPath = root.getValue().relativize(path);
-            root.addDirectory(relPath, origin);
+            root.addDirectory(relPath, initiator);
         }
     }
 
-    void addFile(Path path, O origin, FileTime lastModified) {
-        for(TopLevelDirItem<O> root: getTopLevelAncestors(path)) {
+    void addFile(Path path, I initiator, FileTime lastModified) {
+        for(TopLevelDirItem<I> root: getTopLevelAncestors(path)) {
             Path relPath = root.getValue().relativize(path);
-            root.addFile(relPath, lastModified, origin);
+            root.addFile(relPath, lastModified, initiator);
         }
     }
 
-    void delete(Path path, O origin) {
-        for(TopLevelDirItem<O> root: getTopLevelAncestorsNonEmpty(path)) {
+    void delete(Path path, I initiator) {
+        for(TopLevelDirItem<I> root: getTopLevelAncestorsNonEmpty(path)) {
             Path relPath = root.getValue().relativize(path);
-            root.remove(relPath, origin);
+            root.remove(relPath, initiator);
         }
     }
 
     void sync(PathNode tree) {
         Path path = tree.getPath();
-        for(TopLevelDirItem<O> root: getTopLevelAncestors(path)) {
-            root.sync(tree, defaultOrigin);
+        for(TopLevelDirItem<I> root: getTopLevelAncestors(path)) {
+            root.sync(tree, defaultInitiator);
         }
     }
 
-    private List<TopLevelDirItem<O>> getTopLevelAncestors(Path path) {
+    private List<TopLevelDirItem<I>> getTopLevelAncestors(Path path) {
         return Arrays.asList(
                 root.getChildren().stream()
                 .filter(item -> path.startsWith(item.getValue()))
-                .map(item -> (TopLevelDirItem<O>) item)
+                .map(item -> (TopLevelDirItem<I>) item)
                 .toArray(i -> new TopLevelDirItem[i]));
     }
 
-    private List<TopLevelDirItem<O>> getTopLevelAncestorsNonEmpty(Path path) {
-        List<TopLevelDirItem<O>> roots = getTopLevelAncestors(path);
+    private List<TopLevelDirItem<I>> getTopLevelAncestorsNonEmpty(Path path) {
+        List<TopLevelDirItem<I>> roots = getTopLevelAncestors(path);
         assert !roots.isEmpty() : "path resolved against a dir that was reported to be in the model does not have a top-level ancestor in the model";
         return roots;
     }
