@@ -1,9 +1,9 @@
 LiveDirsFX
 ==========
 
-LiveDirsFX is a combination of directory watcher, directory-tree model (for [TreeView](http://docs.oracle.com/javase/8/javafx/api/javafx/scene/control/TreeView.html)) and simple asynchronous file I/O facility. The extra benefits of this combination are:
+LiveDirsFX is a combination of a directory watcher, a directory-tree model (for [TreeView](http://docs.oracle.com/javase/8/javafx/api/javafx/scene/control/TreeView.html)) and a simple asynchronous file I/O facility. The extra benefits of this combination are:
  1. Automatic synchronization of the directory model with the filesystem.
- 2. Ability to distinguish directory structure and file modifications made by the application (through the I/O facility) from external modifications.
+ 2. Ability to distinguish directory and file modifications made by the application (through the I/O facility) from external modifications.
 
 
 Example
@@ -21,21 +21,21 @@ Path dir = Paths.get("/path/to/watched/directory/");
 liveDirs.addTopLevelDirectory(dir);
 
 // use LiveDirs as a TreeView model
-DirectoryModel<ChangeSource> model = liveDirs.model();
-TreeView<Path> treeView = new TreeView<>(model.getRoot());
+TreeView<Path> treeView = new TreeView<>(liveDirs.model().getRoot());
 treeView.setShowRoot(false);
 
 // handle external changes
-model.modifications().subscribe(m -> {
+liveDirs.model().modifications().subscribe(m -> {
     if(m.getInitiator() == EXTERNAL) {
+        // handle external modification, e.g. reload the modified file
         reload(m.getPath());
     } else {
         // modification done by this application, no extra action needed
     }
 });
 
-// make filesystem changes via LiveDirs's I/O facility to be able to
-// distinguish them from external changes
+// Use LiveDirs's I/O facility to write to the filesystem,
+// in order to be able to distinguish between internal and external changes.
 Path file = dir.resolve("some/file.txt");
 liveDirs.io().saveUTF8File(file, "Hello text file!", INTERNAL);
 
