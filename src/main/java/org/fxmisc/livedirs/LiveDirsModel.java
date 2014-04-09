@@ -9,7 +9,6 @@ import javafx.scene.control.TreeItem;
 
 import org.reactfx.EventSource;
 import org.reactfx.EventStream;
-import org.reactfx.EventStreams;
 
 class LiveDirsModel<I> implements DirectoryModel<I> {
 
@@ -17,8 +16,6 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
     private final EventSource<Update<I>> creations = new EventSource<>();
     private final EventSource<Update<I>> deletions = new EventSource<>();
     private final EventSource<Update<I>> modifications = new EventSource<>();
-    private final EventStream<Update<I>> updates = EventStreams.merge(
-            creations, deletions, modifications);
     private final EventSource<Throwable> errors = new EventSource<>();
     private final Reporter<I> reporter;
     private final I defaultInitiator;
@@ -54,15 +51,14 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
     @Override public EventStream<Update<I>> creations() { return creations; }
     @Override public EventStream<Update<I>> deletions() { return deletions; }
     @Override public EventStream<Update<I>> modifications() { return modifications; }
-    @Override public EventStream<Update<I>> updates() { return updates; }
-    @Override public EventStream<Throwable> errors() { return errors; }
+
+    public EventStream<Throwable> errors() { return errors; }
 
     @Override
     public void setGraphicFactory(GraphicFactory factory) {
         graphicFactory = factory != null ? factory : DEFAULT_GRAPHIC_FACTORY;
     }
 
-    @Override
     public boolean containsPrefixOf(Path path) {
         return root.getChildren().stream()
                 .anyMatch(item -> path.startsWith(item.getValue()));

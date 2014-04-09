@@ -5,7 +5,10 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletionStage;
 
 /**
- *
+ * Simple API for asynchronous file-system operations.
+ * The operations are analogous to those of {@link IOFacility}, except that
+ * every filesystem-changing operation takes an extra argument&mdash;the
+ * initiator of the change.
  * @param <I> type of the initiator of I/O actions
  */
 public interface InitiatorTrackingIOFacility<I> {
@@ -25,9 +28,6 @@ public interface InitiatorTrackingIOFacility<I> {
             byte[] content,
             I initiator);
 
-    /**
-     * Deletes a file or an empty directory.
-     */
     CompletionStage<Void> delete(Path fileOrDir, I initiator);
 
     CompletionStage<Void> deleteTree(Path root, I initiator);
@@ -47,6 +47,10 @@ public interface InitiatorTrackingIOFacility<I> {
         return loadTextFile(file, utf8);
     }
 
+    /**
+     * Returns an IOFacility that delegates all operations to this I/O facility
+     * with the preset initiator of changes.
+     */
     default IOFacility withInitiator(I initiator) {
         InitiatorTrackingIOFacility<I> self = this;
 

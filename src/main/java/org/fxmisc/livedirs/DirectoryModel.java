@@ -5,6 +5,7 @@ import java.util.function.BiFunction;
 
 import javafx.scene.Node;
 import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
@@ -13,10 +14,14 @@ import org.reactfx.EventStream;
 
 /**
  * Observable model of multiple directory trees.
- * @param <I> type of the initiator of changes to the model.
+ * @param <I> type of initiator of changes to the model.
  */
 public interface DirectoryModel<I> {
 
+    /**
+     * Factory to create graphics for {@link TreeItem}s in a
+     * {@link DirectoryModel}.
+     */
     @FunctionalInterface
     interface GraphicFactory extends BiFunction<Path, Boolean, Node> {
         Node createGraphic(Path path, boolean isDirectory);
@@ -27,12 +32,24 @@ public interface DirectoryModel<I> {
         }
     }
 
+    /**
+     * Types of updates to the director model.
+     */
     enum UpdateType {
+        /** Indicates a new directory entry. */
         CREATION,
+
+        /** Indicates removal of a directory entry. */
         DELETION,
+
+        /** Indicates file modification. */
         MODIFICATION,
     }
 
+    /**
+     * Represents an update to the directory model.
+     * @param <I> type of initiator of changes to the model.
+     */
     class Update<I> {
         static <I> Update<I> creation(Path baseDir, Path relPath, I initiator) {
             return new Update<>(baseDir, relPath, initiator, UpdateType.CREATION);
@@ -71,18 +88,48 @@ public interface DirectoryModel<I> {
         }
     }
 
+    /**
+     * Graphic factory that always returns {@code null}.
+     */
     final GraphicFactory NO_GRAPHIC_FACTORY = (path, isDir) -> null;
+
+    /**
+     * Graphic factory that returns a folder icon for a directory and
+     * a document icon for a regular file.
+     */
     final GraphicFactory DEFAULT_GRAPHIC_FACTORY = new DefaultGraphicFactory();
 
 
+    /**
+     * Returns a tree item that can be used as a root of a {@link TreeView}.
+     * The returned TreeItem does not contain any Path (its
+     * {@link TreeItem#getValue()} method returns {@code null}), but its
+     * children are roots of directory trees represented in this model.
+     * As a consequence, the returned TreeItem shall be used with
+     * {@link TreeView#showRootProperty()} set to {@code false}.
+     */
     TreeItem<Path> getRoot();
+
+    /**
+     * Returns an observable stream of additions to the model.
+     */
     EventStream<Update<I>> creations();
+
+    /**
+     * Returns an observable stream of removals from the model.
+     */
     EventStream<Update<I>> deletions();
+
+    /**
+     * Returns an observable stream of file modifications in the model.
+     */
     EventStream<Update<I>> modifications();
-    EventStream<Update<I>> updates();
-    EventStream<Throwable> errors();
+
+    /**
+     * Sets graphic factory used to create graphics of {@link TreeItem}s
+     * in this directory model.
+     */
     void setGraphicFactory(GraphicFactory factory);
-    boolean containsPrefixOf(Path path);
 }
 
 
