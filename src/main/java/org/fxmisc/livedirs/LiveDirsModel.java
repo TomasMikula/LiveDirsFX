@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javafx.scene.control.TreeItem;
 
@@ -59,6 +60,12 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
         graphicFactory = factory != null ? factory : DEFAULT_GRAPHIC_FACTORY;
     }
 
+    @Override
+    public boolean contains(Path path) {
+        return topLevelAncestorStream(path).anyMatch(root ->
+                root.contains(root.getValue().relativize(path)));
+    }
+
     public boolean containsPrefixOf(Path path) {
         return root.getChildren().stream()
                 .anyMatch(item -> path.startsWith(item.getValue()));
@@ -76,18 +83,17 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
     }
 
     void addDirectory(Path path, I initiator) {
-        List<TopLevelDirItem<I>> roots = getTopLevelAncestors(path);
-        for(TopLevelDirItem<I> root: roots) {
+        topLevelAncestorStream(path).forEach(root -> {
             Path relPath = root.getValue().relativize(path);
             root.addDirectory(relPath, initiator);
-        }
+        });
     }
 
     void addFile(Path path, I initiator, FileTime lastModified) {
-        for(TopLevelDirItem<I> root: getTopLevelAncestors(path)) {
+        topLevelAncestorStream(path).forEach(root -> {
             Path relPath = root.getValue().relativize(path);
             root.addFile(relPath, lastModified, initiator);
-        }
+        });
     }
 
     void delete(Path path, I initiator) {
@@ -99,16 +105,18 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
 
     void sync(PathNode tree) {
         Path path = tree.getPath();
-        for(TopLevelDirItem<I> root: getTopLevelAncestors(path)) {
-            root.sync(tree, defaultInitiator);
-        }
+        topLevelAncestorStream(path)
+                .forEach(root -> root.sync(tree, defaultInitiator));
+    }
+
+    private Stream<TopLevelDirItem<I>> topLevelAncestorStream(Path path) {
+        return root.getChildren().stream()
+                .filter(item -> path.startsWith(item.getValue()))
+                .map(item -> (TopLevelDirItem<I>) item);
     }
 
     private List<TopLevelDirItem<I>> getTopLevelAncestors(Path path) {
-        return Arrays.asList(
-                root.getChildren().stream()
-                .filter(item -> path.startsWith(item.getValue()))
-                .map(item -> (TopLevelDirItem<I>) item)
+        return Arrays.asList(topLevelAncestorStream(path)
                 .toArray(i -> new TopLevelDirItem[i]));
     }
 

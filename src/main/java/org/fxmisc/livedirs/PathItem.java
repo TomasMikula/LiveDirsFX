@@ -205,6 +205,10 @@ class TopLevelDirItem<I> extends DirItem {
         }
     }
 
+    public boolean contains(Path relPath) {
+        return resolve(relPath) != null;
+    }
+
     public void addFile(Path relPath, FileTime lastModified, I initiator) {
         updateFile(relPath, lastModified, initiator);
     }

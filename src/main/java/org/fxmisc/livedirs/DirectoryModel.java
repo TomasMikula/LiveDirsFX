@@ -111,6 +111,11 @@ public interface DirectoryModel<I> {
     TreeItem<Path> getRoot();
 
     /**
+     * Indicates whether this directory model contains the given path.
+     */
+    boolean contains(Path path);
+
+    /**
      * Returns an observable stream of additions to the model.
      */
     EventStream<Update<I>> creations();
