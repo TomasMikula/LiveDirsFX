@@ -1,3 +1,5 @@
+version = 1.0.0-SNAPSHOT
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
@@ -16,7 +18,7 @@ targetCompatibility = '1.8'
 group = 'org.fxmisc.livedirs'
 
 dependencies {
-    compile group: 'org.reactfx', name: 'reactfx', version: '1.0.0+'
+    compile group: 'org.reactfx', name: 'reactfx', version: '[1.0,)'
 }
 
 javadoc {
