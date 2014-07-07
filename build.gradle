@@ -19,6 +19,11 @@ dependencies {
     compile group: 'org.reactfx', name: 'reactfx', version: '1.0.0+'
 }
 
+javadoc {
+    // ignore missing Javadoc comments or tags
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+}
+
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from 'build/docs/javadoc'
