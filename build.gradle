@@ -18,7 +18,7 @@ targetCompatibility = '1.8'
 group = 'org.fxmisc.livedirs'
 
 dependencies {
-    compile group: 'org.reactfx', name: 'reactfx', version: '2.0-M4'
+    compile group: 'org.reactfx', name: 'reactfx', version: '2.0-M4u1'
 }
 
 javadoc {
