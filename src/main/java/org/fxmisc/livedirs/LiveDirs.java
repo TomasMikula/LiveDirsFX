@@ -49,19 +49,6 @@ public class LiveDirs<T, I> {
     private final I externalInitiator;
 
     /**
-     * Creates a LiveDirs instance to be used from the JavaFX application
-     * thread.
-     * @param projector converts the ({@link T}) {@link TreeItem#getValue()} into a {@link Path} object
-     * @param injector converts a given {@link Path} object into {@link T}. The reverse of {@code projector}
-     * @param externalInitiator object to represent an initiator of an external
-     * file-system change.
-     * @throws IOException
-     */
-    public LiveDirs(I externalInitiator, Function<T, Path> projector, Function<Path, T> injector) throws IOException {
-        this(externalInitiator, projector, injector, Platform::runLater);
-    }
-
-    /**
      * Creates a LiveDirs instance to be used from a designated thread.
      * @param projector converts the ({@link T}) {@link TreeItem#getValue()} into a {@link Path} object
      * @param injector converts a given {@link Path} object into {@link T}. The reverse of {@code projector}
