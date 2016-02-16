@@ -13,8 +13,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import javafx.application.Platform;
+import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 
 import org.reactfx.EventSource;
@@ -33,45 +35,50 @@ import org.reactfx.EventStreams;
  *
  * <p>The directory model can be used directly as a model for {@link TreeView}.
  *
+ * @param <T> type for {@link TreeItem#getValue()}
  * @param <I> type of the initiator of I/O actions.
  */
-public class LiveDirs<I> {
+public class LiveDirs<T, I> {
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
     private final Executor clientThreadExecutor;
     private final DirWatcher dirWatcher;
-    private final LiveDirsModel<I> model;
+    private final LiveDirsModel<T, I> model;
     private final LiveDirsIO<I> io;
     private final I externalInitiator;
 
     /**
      * Creates a LiveDirs instance to be used from the JavaFX application
      * thread.
+     * @param projector converts the ({@link T}) {@link TreeItem#getValue()} into a {@link Path} object
+     * @param injector converts a given {@link Path} object into {@link T}. The reverse of {@code projector}
      * @param externalInitiator object to represent an initiator of an external
      * file-system change.
      * @throws IOException
      */
-    public LiveDirs(I externalInitiator) throws IOException {
-        this(externalInitiator, Platform::runLater);
+    public LiveDirs(I externalInitiator, Function<T, Path> projector, Function<Path, T> injector) throws IOException {
+        this(externalInitiator, projector, injector, Platform::runLater);
     }
 
     /**
      * Creates a LiveDirs instance to be used from a designated thread.
+     * @param projector converts the ({@link T}) {@link TreeItem#getValue()} into a {@link Path} object
+     * @param injector converts a given {@link Path} object into {@link T}. The reverse of {@code projector}
      * @param externalInitiator object to represent an initiator of an external
      * file-system change.
      * @param clientThreadExecutor executor to execute actions on the caller
      * thread. Used to publish updates and errors on the caller thread.
      * @throws IOException
      */
-    public LiveDirs(I externalInitiator, Executor clientThreadExecutor) throws IOException {
+    public LiveDirs(I externalInitiator, Function<T, Path> projector, Function<Path, T> injector, Executor clientThreadExecutor) throws IOException {
         this.externalInitiator = externalInitiator;
         this.clientThreadExecutor = clientThreadExecutor;
         this.dirWatcher = new DirWatcher(clientThreadExecutor);
-        this.model = new LiveDirsModel<>(externalInitiator);
+        this.model = new LiveDirsModel<>(externalInitiator, projector, injector);
         this.io = new LiveDirsIO<>(dirWatcher, model, clientThreadExecutor);
 
-        this.dirWatcher.signalledKeys().subscribe(this::processKey);
+        this.dirWatcher.signalledKeys().subscribe(key -> processKey(key));
         this.errors = EventStreams.merge(dirWatcher.errors(), model.errors(), localErrors);
     }
 
@@ -83,7 +90,7 @@ public class LiveDirs<I> {
     /**
      * Observable directory model.
      */
-    public DirectoryModel<I> model() { return model; }
+    public DirectoryModel<T, I> model() { return model; }
 
     /**
      * Asynchronous I/O facility. All I/O operations performed by this facility
