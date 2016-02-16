@@ -71,7 +71,7 @@ public class LiveDirs<I> {
         this.model = new LiveDirsModel<>(externalInitiator);
         this.io = new LiveDirsIO<>(dirWatcher, model, clientThreadExecutor);
 
-        this.dirWatcher.signalledKeys().subscribe(key -> processKey(key));
+        this.dirWatcher.signalledKeys().subscribe(this::processKey);
         this.errors = EventStreams.merge(dirWatcher.errors(), model.errors(), localErrors);
     }
 
