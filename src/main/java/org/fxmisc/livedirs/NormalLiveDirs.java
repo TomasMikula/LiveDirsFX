@@ -25,7 +25,7 @@ import java.util.function.Function;
  * </pre>
  * @param <I> type of the initiator of I/O actions.
  */
-public class NormalLiveDirs<I> extends LiveDirs<Path, I> {
+public class NormalLiveDirs<I> extends LiveDirs<I, Path> {
 
     /**
      * Creates a NormalLiveDirs instance to be used from the JavaFX application

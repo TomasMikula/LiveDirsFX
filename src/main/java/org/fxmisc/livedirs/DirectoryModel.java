@@ -14,10 +14,10 @@ import org.reactfx.EventStream;
 
 /**
  * Observable model of multiple directory trees.
- * @param <T> type for {@link TreeItem#getValue()}
  * @param <I> type of initiator of changes to the model.
+ * @param <T> type for {@link TreeItem#getValue()}
  */
-public interface DirectoryModel<T, I> {
+public interface DirectoryModel<I, T> {
 
     /**
      * Factory to create graphics for {@link TreeItem}s in a

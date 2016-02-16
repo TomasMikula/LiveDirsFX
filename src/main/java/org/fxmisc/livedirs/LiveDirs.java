@@ -35,16 +35,16 @@ import org.reactfx.EventStreams;
  *
  * <p>The directory model can be used directly as a model for {@link TreeView}.
  *
- * @param <T> type for {@link TreeItem#getValue()}
  * @param <I> type of the initiator of I/O actions.
+ * @param <T> type for {@link TreeItem#getValue()}
  */
-public class LiveDirs<T, I> {
+public class LiveDirs<I, T> {
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
     private final Executor clientThreadExecutor;
     private final DirWatcher dirWatcher;
-    private final LiveDirsModel<T, I> model;
+    private final LiveDirsModel<I, T> model;
     private final LiveDirsIO<I> io;
     private final I externalInitiator;
 
@@ -77,7 +77,7 @@ public class LiveDirs<T, I> {
     /**
      * Observable directory model.
      */
-    public DirectoryModel<T, I> model() { return model; }
+    public DirectoryModel<I, T> model() { return model; }
 
     /**
      * Asynchronous I/O facility. All I/O operations performed by this facility

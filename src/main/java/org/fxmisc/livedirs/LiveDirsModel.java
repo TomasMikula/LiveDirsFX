@@ -12,7 +12,7 @@ import javafx.scene.control.TreeItem;
 import org.reactfx.EventSource;
 import org.reactfx.EventStream;
 
-class LiveDirsModel<T, I> implements DirectoryModel<T, I> {
+class LiveDirsModel<I, T> implements DirectoryModel<I, T> {
 
     private final TreeItem<T> root = new TreeItem<>();
     private final EventSource<Update<I>> creations = new EventSource<>();
@@ -82,7 +82,7 @@ class LiveDirsModel<T, I> implements DirectoryModel<T, I> {
     }
 
     void updateModificationTime(Path path, FileTime lastModified, I initiator) {
-        for(TopLevelDirItem<T, I> root: getTopLevelAncestorsNonEmpty(path)) {
+        for(TopLevelDirItem<I, T> root: getTopLevelAncestorsNonEmpty(path)) {
             Path relPath = root.getPath().relativize(path);
             root.updateModificationTime(relPath, lastModified, initiator);
         }
@@ -103,7 +103,7 @@ class LiveDirsModel<T, I> implements DirectoryModel<T, I> {
     }
 
     void delete(Path path, I initiator) {
-        for(TopLevelDirItem<T, I> root: getTopLevelAncestorsNonEmpty(path)) {
+        for(TopLevelDirItem<I, T> root: getTopLevelAncestorsNonEmpty(path)) {
             Path relPath = root.getPath().relativize(path);
             root.remove(relPath, initiator);
         }
@@ -115,20 +115,20 @@ class LiveDirsModel<T, I> implements DirectoryModel<T, I> {
                 .forEach(root -> root.sync(tree, defaultInitiator));
     }
 
-    private Stream<TopLevelDirItem<T, I>> topLevelAncestorStream(Path path) {
+    private Stream<TopLevelDirItem<I, T>> topLevelAncestorStream(Path path) {
         return root.getChildren().stream()
                 .map(child -> (PathItem<T>) child)
                 .filter(item -> path.startsWith(item.getPath()))
-                .map(item -> (TopLevelDirItem<T, I>) item);
+                .map(item -> (TopLevelDirItem<I, T>) item);
     }
 
-    private List<TopLevelDirItem<T, I>> getTopLevelAncestors(Path path) {
+    private List<TopLevelDirItem<I, T>> getTopLevelAncestors(Path path) {
         return Arrays.asList(topLevelAncestorStream(path)
-                .<TopLevelDirItem<T, I>>toArray(TopLevelDirItem[]::new));
+                .<TopLevelDirItem<I, T>>toArray(TopLevelDirItem[]::new));
     }
 
-    private List<TopLevelDirItem<T, I>> getTopLevelAncestorsNonEmpty(Path path) {
-        List<TopLevelDirItem<T, I>> roots = getTopLevelAncestors(path);
+    private List<TopLevelDirItem<I, T>> getTopLevelAncestorsNonEmpty(Path path) {
+        List<TopLevelDirItem<I, T>> roots = getTopLevelAncestors(path);
         assert !roots.isEmpty() : "path resolved against a dir that was reported to be in the model does not have a top-level ancestor in the model";
         return roots;
     }

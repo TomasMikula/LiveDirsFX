@@ -185,7 +185,7 @@ interface Reporter<I> {
     void reportError(Throwable error);
 }
 
-class TopLevelDirItem<T, I> extends DirItem<T> {
+class TopLevelDirItem<I, T> extends DirItem<T> {
     private final GraphicFactory graphicFactory;
     private final Reporter<I> reporter;
 
