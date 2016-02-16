@@ -25,7 +25,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     model.addFile(file, initiator, lastModified);
                     created.complete(null);
                 },
-                error -> created.completeExceptionally(error));
+                created::completeExceptionally);
         return wrap(created);
     }
 
@@ -40,7 +40,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     }
                     created.complete(null);
                 },
-                error -> created.completeExceptionally(error));
+                created::completeExceptionally);
         return wrap(created);
     }
 
@@ -52,7 +52,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     model.updateModificationTime(file, lastModified, initiator);
                     saved.complete(null);
                 },
-                error -> saved.completeExceptionally(error));
+                saved::completeExceptionally);
         return wrap(saved);
     }
 
@@ -64,7 +64,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     model.updateModificationTime(file, lastModified, initiator);
                     saved.complete(null);
                 },
-                error -> saved.completeExceptionally(error));
+                saved::completeExceptionally);
         return wrap(saved);
     }
 
@@ -76,7 +76,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     model.delete(file, initiator);
                     deleted.complete(null);
                 },
-                error -> deleted.completeExceptionally(error));
+                deleted::completeExceptionally);
         return wrap(deleted);
     }
 
@@ -88,7 +88,7 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
                     model.delete(root, initiator);
                     deleted.complete(null);
                 },
-                error -> deleted.completeExceptionally(error));
+                deleted::completeExceptionally);
         return wrap(deleted);
     }
 
@@ -96,8 +96,8 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
     public CompletionStage<String> loadTextFile(Path file, Charset charset) {
         CompletableFuture<String> loaded = new CompletableFuture<>();
         dirWatcher.loadTextFile(file, charset,
-                content -> loaded.complete(content),
-                error -> loaded.completeExceptionally(error));
+                loaded::complete,
+                loaded::completeExceptionally);
         return wrap(loaded);
     }
 
@@ -105,8 +105,8 @@ class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
     public CompletionStage<byte[]> loadBinaryFile(Path file) {
         CompletableFuture<byte[]> loaded = new CompletableFuture<>();
         dirWatcher.loadBinaryFile(file,
-                content -> loaded.complete(content),
-                error -> loaded.completeExceptionally(error));
+                loaded::complete,
+                loaded::completeExceptionally);
         return wrap(loaded);
     }
 

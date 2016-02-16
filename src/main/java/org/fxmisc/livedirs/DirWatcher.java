@@ -43,7 +43,7 @@ class DirWatcher {
 
     public DirWatcher(Executor eventThreadExecutor) throws IOException {
         this.watcher = FileSystems.getDefault().newWatchService();
-        this.ioThread = new Thread(() -> loop(), "DirWatchIO");
+        this.ioThread = new Thread(this::loop, "DirWatchIO");
         this.eventThreadExecutor = eventThreadExecutor;
         this.ioThread.start();
     }
@@ -282,7 +282,7 @@ class PathNode {
             try(Stream<Path> dirStream = Files.list(root)) {
                 childPaths = dirStream
                         .sorted(PATH_COMPARATOR)
-                        .toArray(i -> new Path[i]);
+                        .toArray(Path[]::new);
             }
             List<PathNode> children = new ArrayList<>(childPaths.length);
             for(Path p: childPaths) {

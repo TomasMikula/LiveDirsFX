@@ -117,7 +117,7 @@ class LiveDirsModel<I> implements DirectoryModel<I> {
 
     private List<TopLevelDirItem<I>> getTopLevelAncestors(Path path) {
         return Arrays.asList(topLevelAncestorStream(path)
-                .toArray(i -> new TopLevelDirItem[i]));
+                .<TopLevelDirItem<I>>toArray(TopLevelDirItem[]::new));
     }
 
     private List<TopLevelDirItem<I>> getTopLevelAncestorsNonEmpty(Path path) {
