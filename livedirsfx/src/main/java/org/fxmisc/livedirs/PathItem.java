@@ -38,7 +38,7 @@ abstract class PathItem<T> extends TreeItem<T> {
 
     public PathItem<T> getRelChild(Path relPath) {
         assert relPath.getNameCount() == 1;
-        Path childValue = projector.apply(getValue()).resolve(relPath);
+        Path childValue = getPath().resolve(relPath);
         for(TreeItem<T> ch: getChildren()) {
             PathItem<T> pathCh = (PathItem<T>) ch;
             if(pathCh.getPath().equals(childValue)) {
