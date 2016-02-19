@@ -1,4 +1,4 @@
-package org.fxmisc.livedirs;
+package org.fxmisc.livedirs.demo.checkbox;
 
 import javafx.beans.InvalidationListener;
 import javafx.scene.Node;
