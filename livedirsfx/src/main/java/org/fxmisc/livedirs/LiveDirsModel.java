@@ -73,8 +73,7 @@ class LiveDirsModel<I, T> implements DirectoryModel<I, T> {
 
     public boolean containsPrefixOf(Path path) {
         return root.getChildren().stream()
-                .map(child -> (PathItem<T>) child)
-                .anyMatch(item -> path.startsWith(item.getPath()));
+                .anyMatch(item -> path.startsWith(projector.apply(item.getValue())));
     }
 
     void addTopLevelDirectory(Path dir) {
@@ -117,8 +116,7 @@ class LiveDirsModel<I, T> implements DirectoryModel<I, T> {
 
     private Stream<TopLevelDirItem<I, T>> topLevelAncestorStream(Path path) {
         return root.getChildren().stream()
-                .map(child -> (PathItem<T>) child)
-                .filter(item -> path.startsWith(item.getPath()))
+                .filter(item -> path.startsWith(projector.apply(item.getValue())))
                 .map(item -> (TopLevelDirItem<I, T>) item);
     }
 
