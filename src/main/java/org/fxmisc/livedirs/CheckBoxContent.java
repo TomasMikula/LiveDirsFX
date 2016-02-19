@@ -20,4 +20,8 @@ public interface CheckBoxContent {
     Path getPath();
     void setPath(Path p);
 
+    void lock();
+    void unlock();
+    boolean isLocked();
+
 }

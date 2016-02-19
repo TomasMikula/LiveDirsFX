@@ -18,6 +18,11 @@ public class CheckBoxContentImpl implements CheckBoxContent {
     public final Path getPath() { return path; }
     public final void setPath(Path p) { path = p; }
 
+    private boolean locked = false;
+    public final boolean isLocked() { return locked; }
+    public final void lock() { locked = true; }
+    public final void unlock() { locked = false; }
+
     public CheckBoxContentImpl(Path p) {
         path = p;
     }

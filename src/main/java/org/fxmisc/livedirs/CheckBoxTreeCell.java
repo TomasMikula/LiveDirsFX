@@ -8,9 +8,18 @@ import javafx.scene.control.TreeItem;
 import org.reactfx.Subscription;
 import org.reactfx.value.Var;
 
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class CheckBoxTreeCell<C extends CheckBoxContent> extends TreeCell<C> {
+
+    private final Recursive<BiConsumer<TreeItem<C>, CheckBoxContent.State>> UPDATE_DOWNWARDS = new Recursive<>();
+    {
+        UPDATE_DOWNWARDS.f = (item, state) -> {
+            item.getValue().setState(state);
+            item.getChildren().forEach(child -> UPDATE_DOWNWARDS.f.accept(child, state));
+        };
+    }
 
     private final CheckBox checkBox = new CheckBox();
     private final Function<C, String> stringConverter;
@@ -27,7 +36,7 @@ public class CheckBoxTreeCell<C extends CheckBoxContent> extends TreeCell<C> {
             if (parentItem != null) {
                 CheckBoxContent value = parentItem.getValue();
 
-                if (value != null) {
+                if (value != null && !value.isLocked()) {
                     CheckBoxContent.State[] childrenStates = parentItem.getChildren()
                             .stream().map(v -> v.getValue().getState())
                             .distinct()
@@ -50,15 +59,16 @@ public class CheckBoxTreeCell<C extends CheckBoxContent> extends TreeCell<C> {
             }
 
             // then do downward call
-            CheckBoxContent.State state = treeItem.getValue().getState();
-            if (state != null) {
-                if (state.equals(CheckBoxContent.State.CHECKED)) {
-                    treeItem.getChildren().forEach(v -> v.getValue().setState(CheckBoxContent.State.CHECKED));
-                } else if (state.equals(CheckBoxContent.State.UNCHECKED)) {
-                    treeItem.getChildren().forEach(v -> v.getValue().setState(CheckBoxContent.State.UNCHECKED));
-                }
-                // else state == UNDEFINED, so do nothing
+            C itemVal = treeItem.getValue();
+            // when children's invalidation listeners are called, skip this item's update as it
+            //  was the one the initiated the call.
+            itemVal.lock();
+            CheckBoxContent.State state = itemVal.getState();
+            if (state != CheckBoxContent.State.UNDEFINED) {
+                treeItem.getChildren().forEach(child -> UPDATE_DOWNWARDS.f.accept(child, state));
             }
+            // once finished, unlock so updates via one of its children will propogate through the tree
+            itemVal.unlock();
         }
     };
 
