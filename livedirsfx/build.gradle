@@ -1,19 +1,5 @@
-version = '1.0.0-SNAPSHOT'
-
-apply plugin: 'java'
-apply plugin: 'eclipse'
 apply plugin: 'maven'
 apply plugin: 'signing'
-
-repositories {
-    mavenCentral()
-    maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-}
-
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
 
 group = 'org.fxmisc.livedirs'
 
