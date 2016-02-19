@@ -48,8 +48,8 @@ public class LiveDirs<I, T> {
      * file-system change.
      * @throws IOException
      */
-    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator) throws IOException {
-        return getNormalInstance(externalInitiator, Platform::runLater);
+    public static <I> LiveDirs<I, Path> getInstance(I externalInitiator) throws IOException {
+        return getInstance(externalInitiator, Platform::runLater);
     }
 
     /**
@@ -61,7 +61,7 @@ public class LiveDirs<I, T> {
      * thread. Used to publish updates and errors on the caller thread.
      * @throws IOException
      */
-    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator, Executor clientThreadExecutor) throws IOException {
+    public static <I> LiveDirs<I, Path> getInstance(I externalInitiator, Executor clientThreadExecutor) throws IOException {
         return new LiveDirs<>(externalInitiator, Function.identity(), Function.identity(), clientThreadExecutor);
     }
 

@@ -23,7 +23,7 @@ public class NormalLiveDirs extends Application {
 
         try {
             // create a LiveDirs instance for use on the JavaFX Application Thread
-            LiveDirs<ChangeSource, Path> dirs = LiveDirs.getNormalInstance(ChangeSource.EXTERNAL);
+            LiveDirs<ChangeSource, Path> dirs = LiveDirs.getInstance(ChangeSource.EXTERNAL);
 
             // set directory to watch
             dirs.addTopLevelDirectory(Paths.get(System.getProperty("user.home"), "Documents").toAbsolutePath());
