@@ -19,3 +19,9 @@ task CheckBoxLiveDirs(type: JavaExec, dependsOn: classes) {
     description = 'Demonstrates a working LiveDirs instance that displays its items as though' +
                     'they are CheckBoxTreeItems'
 }
+
+task NormalLiveDirs(type: JavaExec, dependsOn: classes) {
+    main = 'org.fxmisc.livedirs.demo.NormalLiveDirs'
+    classpath = files(sourceSets.main.output, configurations.runtime)
+    description = 'Demonstrates a working LiveDirs instance that displays its items normally'
+}
