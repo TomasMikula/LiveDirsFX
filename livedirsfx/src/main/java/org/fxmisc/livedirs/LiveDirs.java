@@ -15,6 +15,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import javafx.application.Platform;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 
@@ -38,6 +39,31 @@ import org.reactfx.EventStreams;
  * @param <T> type for {@link TreeItem#getValue()}
  */
 public class LiveDirs<I, T> {
+
+    /**
+     * Creates a LiveDirs instance to be used from the JavaFX application
+     * thread.
+     *
+     * @param externalInitiator object to represent an initiator of an external
+     * file-system change.
+     * @throws IOException
+     */
+    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator) throws IOException {
+        return getNormalInstance(externalInitiator, Platform::runLater);
+    }
+
+    /**
+     * Creates a LiveDirs instance to be used from a designated thread.
+     *
+     * @param externalInitiator object to represent an initiator of an external
+     * file-system change.
+     * @param clientThreadExecutor executor to execute actions on the caller
+     * thread. Used to publish updates and errors on the caller thread.
+     * @throws IOException
+     */
+    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator, Executor clientThreadExecutor) throws IOException {
+        return new LiveDirs<>(externalInitiator, Function.identity(), Function.identity(), clientThreadExecutor);
+    }
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
