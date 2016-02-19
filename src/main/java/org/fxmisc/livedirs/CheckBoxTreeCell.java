@@ -12,10 +12,8 @@ import java.util.function.Function;
 
 public class CheckBoxTreeCell<C extends CheckBoxContent> extends TreeCell<C> {
 
-    private static final Function<CheckBoxContent, String> DEFAULT_CONVERTER = (content) -> content.getPath().toString();
-
     private final CheckBox checkBox = new CheckBox();
-    private final Function<CheckBoxContent, String> stringConverter;
+    private final Function<C, String> stringConverter;
     private Var<CheckBoxContent.State> state;
     private Var<Boolean> select;
     private Subscription intermediateState;
@@ -65,10 +63,10 @@ public class CheckBoxTreeCell<C extends CheckBoxContent> extends TreeCell<C> {
     };
 
     public CheckBoxTreeCell() {
-        this(DEFAULT_CONVERTER);
+        this((content) -> content.getPath().toString());
     }
 
-    public CheckBoxTreeCell(Function<CheckBoxContent, String> stringConverter) {
+    public CheckBoxTreeCell(Function<C, String> stringConverter) {
         super();
         this.stringConverter = stringConverter;
     }
