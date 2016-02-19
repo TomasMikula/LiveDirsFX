@@ -8,10 +8,10 @@ import java.util.concurrent.Executor;
 
 class LiveDirsIO<I> implements InitiatorTrackingIOFacility<I> {
     private final DirWatcher dirWatcher;
-    private final LiveDirsModel<I> model;
+    private final LiveDirsModel<I, ?> model;
     private final Executor clientThreadExecutor;
 
-    public LiveDirsIO(DirWatcher dirWatcher, LiveDirsModel<I> model, Executor clientThreadExecutor) {
+    public LiveDirsIO(DirWatcher dirWatcher, LiveDirsModel<I, ?> model, Executor clientThreadExecutor) {
         this.dirWatcher = dirWatcher;
         this.model = model;
         this.clientThreadExecutor = clientThreadExecutor;
