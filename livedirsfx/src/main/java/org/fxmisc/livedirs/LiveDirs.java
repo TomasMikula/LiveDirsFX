@@ -15,7 +15,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-import javafx.application.Platform;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 
@@ -39,78 +38,6 @@ import org.reactfx.EventStreams;
  * @param <T> type for {@link TreeItem#getValue()}
  */
 public class LiveDirs<I, T> {
-
-    /* ****************** *
-     *  Static Factories  *
-     * ****************** */
-
-    /**
-     * Creates a LiveDirs instance to be used from a designated thread.
-     *
-     * @param externalInitiator object to represent an initiator of an external
-     * file-system change.
-     * @param clientThreadExecutor executor to execute actions on the caller
-     * thread. Used to publish updates and errors on the caller thread.
-     * @throws IOException
-     */
-    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator, Executor clientThreadExecutor) throws IOException {
-        return new LiveDirs<>(externalInitiator, Function.identity(), Function.identity(), clientThreadExecutor);
-    }
-
-    /**
-     * Same as {@link #getNormalInstance(Object, Executor)} but is for use on the JavaFX application
-     * thread.
-     *
-     * @param externalInitiator object to represent an initiator of an external
-     * file-system change.
-     * @throws IOException
-     */
-    public static <I> LiveDirs<I, Path> getNormalInstance(I externalInitiator) throws IOException {
-        return getNormalInstance(externalInitiator, Platform::runLater);
-    }
-
-    /**
-     * Creates a LiveDirs instance to be used from a designated thread. This type of instance
-     * can be used to display a {@link TreeItem}s as though they were
-     * {@link javafx.scene.control.CheckBoxTreeItem}s.
-     *
-     * <p>To do so, use the following code:
-     * <pre>
-     *     {@code
-     *     LiveDirs<I> dirs = LiveDirs.getCheckBoxInstance( args );
-     *     TreeView<CheckBoxContent> view = new TreeView<>(dirs.model().getRoot());
-     *     view.setCellFactory(TreeCellFactories.checkBoxFactory());
-     *     view.setShowRoot(false);
-     *     }
-     * </pre>
-     *
-     * @param externalInitiator object to represent an initiator of an external
-     * file-system change.
-     * @param clientThreadExecutor executor to execute actions on the caller
-     * thread. Used to publish updates and errors on the caller thread.
-     * @throws IOException
-     */
-    public static <I> LiveDirs<I, CheckBoxContent> getCheckBoxInstance(
-            I externalInitiator, Function<Path, CheckBoxContent> treeItemConstructor,  Executor clientThreadExecutor) throws IOException {
-        return new LiveDirs<>(externalInitiator, CheckBoxContent::getPath, treeItemConstructor, clientThreadExecutor);
-    }
-
-    /**
-     * Same as {@link #getCheckBoxInstance(Object, Function, Executor)} but uses
-     * {@link CheckBoxContentImpl} to implement the {@link CheckBoxContent} interface.
-     */
-    public static <I> LiveDirs<I, CheckBoxContent> getCheckBoxInstance(
-            I externalInitiator, Executor clientThreadExecutor) throws IOException {
-        return getCheckBoxInstance(externalInitiator, CheckBoxContentImpl::new, clientThreadExecutor);
-    }
-
-    /**
-     * Same as {@link #getCheckBoxInstance(Object, Executor)} but the instance will be used on the
-     * JavaFX Application thread
-     */
-    public static <I> LiveDirs<I, CheckBoxContent> getCheckBoxInstance(I externalInitiator) throws IOException {
-        return getCheckBoxInstance(externalInitiator, Platform::runLater);
-    }
 
     private final EventSource<Throwable> localErrors = new EventSource<>();
     private final EventStream<Throwable> errors;
