@@ -33,6 +33,9 @@ public class CheckBoxLiveDirs extends Application {
             // set directory to watch
             dirs.addTopLevelDirectory(Paths.get(System.getProperty("user.home"), "Documents").toAbsolutePath());
             view.setRoot(dirs.model().getRoot());
+
+            // stop DirWatcher's thread
+            primaryStage.setOnCloseRequest(val -> dirs.dispose());
         } catch (IOException e) {
             e.printStackTrace();
         }
