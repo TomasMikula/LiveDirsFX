@@ -66,7 +66,7 @@ abstract class PathItem<T> extends TreeItem<T> {
 }
 
 class FileItem<T> extends PathItem<T> {
-    public static <T> FileItem create(T path, FileTime lastModified, GraphicFactory graphicFactory, Function<T, Path> projector) {
+    public static <T> FileItem<T> create(T path, FileTime lastModified, GraphicFactory graphicFactory, Function<T, Path> projector) {
         return new FileItem<>(path, lastModified, graphicFactory.createGraphic(projector.apply(path), false), projector);
     }
 
@@ -98,7 +98,7 @@ class DirItem<T> extends PathItem<T> {
     protected final Function<Path, T> getInjector() { return injector; }
     public final T inject(Path path) { return injector.apply(path); }
 
-    public static <T> DirItem create(T path, GraphicFactory graphicFactory, Function<T, Path> projector, Function<Path, T> injector) {
+    public static <T> DirItem<T> create(T path, GraphicFactory graphicFactory, Function<T, Path> projector, Function<Path, T> injector) {
         return new DirItem<>(path, graphicFactory.createGraphic(projector.apply(path), true), projector, injector);
     }
 
@@ -116,7 +116,6 @@ class DirItem<T> extends PathItem<T> {
         assert fileName.getNameCount() == 1;
         int i = getFileInsertionIndex(fileName.toString());
 
-        @SuppressWarnings("unchecked")
         FileItem<T> child = FileItem.create(inject(getPath().resolve(fileName)), lastModified, graphicFactory, getProjector());
         getChildren().add(i, child);
         return child;
@@ -126,7 +125,6 @@ class DirItem<T> extends PathItem<T> {
         assert dirName.getNameCount() == 1;
         int i = getDirInsertionIndex(dirName.toString());
 
-        @SuppressWarnings("unchecked")
         DirItem<T> child = DirItem.create(inject(getPath().resolve(dirName)), graphicFactory, getProjector(), getInjector());
         getChildren().add(i, child);
         return child;
@@ -217,7 +215,7 @@ class TopLevelDirItem<I, T> extends DirItem<T> {
     }
 
     private void updateFile(Path relPath, FileTime lastModified, I initiator) {
-        PathItem item = resolve(relPath);
+        PathItem<T> item = resolve(relPath);
         if(item == null || item.isDirectory()) {
             sync(PathNode.file(getPath().resolve(relPath), lastModified), initiator);
         }
@@ -236,7 +234,7 @@ class TopLevelDirItem<I, T> extends DirItem<T> {
     }
 
     public void addDirectory(Path relPath, I initiator) {
-        PathItem item = resolve(relPath);
+        PathItem<T> item = resolve(relPath);
         if(item == null || !item.isDirectory()) {
             sync(PathNode.directory(getPath().resolve(relPath), Collections.emptyList()), initiator);
         }
@@ -272,9 +270,8 @@ class TopLevelDirItem<I, T> extends DirItem<T> {
 
         // remove undesired children
         for(TreeItem<T> ch: actualChildren) {
-            PathItem<T> pathCh = (PathItem<T>) ch;
-            if(!desiredChildren.contains(pathCh.getPath())) {
-                removeNode(pathCh, null);
+            if(!desiredChildren.contains(getProjector().apply(ch.getValue()))) {
+                removeNode(ch, null);
             }
         }
 
@@ -316,16 +313,16 @@ class TopLevelDirItem<I, T> extends DirItem<T> {
         }
     }
 
-    private void removeNode(PathItem<T> node, I initiator) {
+    private void removeNode(TreeItem<T> node, I initiator) {
         signalDeletionRecursively(node, initiator);
         node.getParent().getChildren().remove(node);
     }
 
-    private void signalDeletionRecursively(PathItem<T> node, I initiator) {
+    private void signalDeletionRecursively(TreeItem<T> node, I initiator) {
         for(TreeItem<T> child: node.getChildren()) {
-            signalDeletionRecursively((PathItem<T>) child, initiator);
+            signalDeletionRecursively(child, initiator);
         }
-        reporter.reportDeletion(getPath(), getPath().relativize(node.getPath()), initiator);
+        reporter.reportDeletion(getPath(), getPath().relativize(getProjector().apply(node.getValue())), initiator);
     }
 
     private void raise(Throwable t) {
