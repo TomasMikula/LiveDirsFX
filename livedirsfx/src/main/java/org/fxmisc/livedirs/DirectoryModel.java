@@ -15,8 +15,9 @@ import org.reactfx.EventStream;
 /**
  * Observable model of multiple directory trees.
  * @param <I> type of initiator of changes to the model.
+ * @param <T> type for {@link TreeItem#getValue()}
  */
-public interface DirectoryModel<I> {
+public interface DirectoryModel<I, T> {
 
     /**
      * Factory to create graphics for {@link TreeItem}s in a
@@ -108,7 +109,7 @@ public interface DirectoryModel<I> {
      * As a consequence, the returned TreeItem shall be used with
      * {@link TreeView#showRootProperty()} set to {@code false}.
      */
-    TreeItem<Path> getRoot();
+    TreeItem<T> getRoot();
 
     /**
      * Indicates whether this directory model contains the given path.

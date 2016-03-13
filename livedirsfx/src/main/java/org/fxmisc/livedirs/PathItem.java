@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Function;
 
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
@@ -14,9 +15,15 @@ import javafx.scene.control.TreeItem;
 
 import org.fxmisc.livedirs.DirectoryModel.GraphicFactory;
 
-abstract class PathItem extends TreeItem<Path> {
-    protected PathItem(Path path, Node graphic) {
+abstract class PathItem<T> extends TreeItem<T> {
+
+    private final Function<T, Path> projector;
+    protected final Function<T, Path> getProjector() { return projector; }
+    public final Path getPath() { return projector.apply(getValue()); }
+
+    protected PathItem(T path, Node graphic, Function<T, Path> projector) {
         super(path, graphic);
+        this.projector = projector;
     }
 
     @Override
@@ -26,26 +33,27 @@ abstract class PathItem extends TreeItem<Path> {
 
     public abstract boolean isDirectory();
 
-    public FileItem asFileItem() { return (FileItem) this; }
-    public DirItem asDirItem() { return (DirItem) this; }
+    public FileItem<T> asFileItem() { return (FileItem<T>) this; }
+    public DirItem<T> asDirItem() { return (DirItem<T>) this; }
 
-    public PathItem getRelChild(Path relPath) {
+    public PathItem<T> getRelChild(Path relPath) {
         assert relPath.getNameCount() == 1;
-        Path childValue = getValue().resolve(relPath);
-        for(TreeItem<Path> ch: getChildren()) {
-            if(ch.getValue().equals(childValue)) {
-                return (PathItem) ch;
+        Path childValue = getPath().resolve(relPath);
+        for(TreeItem<T> ch: getChildren()) {
+            PathItem<T> pathCh = (PathItem<T>) ch;
+            if(pathCh.getPath().equals(childValue)) {
+                return pathCh;
             }
         }
         return null;
     }
 
-    protected PathItem resolve(Path relPath) {
+    protected PathItem<T> resolve(Path relPath) {
         int len = relPath.getNameCount();
         if(len == 0) {
             return this;
         } else {
-            PathItem child = getRelChild(relPath.getName(0));
+            PathItem<T> child = getRelChild(relPath.getName(0));
             if(child == null) {
                 return null;
             } else if(len == 1) {
@@ -57,15 +65,15 @@ abstract class PathItem extends TreeItem<Path> {
     }
 }
 
-class FileItem extends PathItem {
-    public static FileItem create(Path path, FileTime lastModified, GraphicFactory graphicFactory) {
-        return new FileItem(path, lastModified, graphicFactory.createGraphic(path, false));
+class FileItem<T> extends PathItem<T> {
+    public static <T> FileItem<T> create(T path, FileTime lastModified, GraphicFactory graphicFactory, Function<T, Path> projector) {
+        return new FileItem<>(path, lastModified, graphicFactory.createGraphic(projector.apply(path), false), projector);
     }
 
     private FileTime lastModified;
 
-    private FileItem(Path path, FileTime lastModified, Node graphic) {
-        super(path, graphic);
+    private FileItem(T path, FileTime lastModified, Node graphic, Function<T, Path> projector) {
+        super(path, graphic, projector);
         this.lastModified = lastModified;
     }
 
@@ -84,13 +92,19 @@ class FileItem extends PathItem {
     }
 }
 
-class DirItem extends PathItem {
-    public static DirItem create(Path path, GraphicFactory graphicFactory) {
-        return new DirItem(path, graphicFactory.createGraphic(path, true));
+class DirItem<T> extends PathItem<T> {
+
+    private final Function<Path, T> injector;
+    protected final Function<Path, T> getInjector() { return injector; }
+    public final T inject(Path path) { return injector.apply(path); }
+
+    public static <T> DirItem<T> create(T path, GraphicFactory graphicFactory, Function<T, Path> projector, Function<Path, T> injector) {
+        return new DirItem<>(path, graphicFactory.createGraphic(projector.apply(path), true), projector, injector);
     }
 
-    protected DirItem(Path path, Node graphic) {
-        super(path, graphic);
+    protected DirItem(T path, Node graphic, Function<T, Path> projector, Function<Path, T> injector) {
+        super(path, graphic, projector);
+        this.injector = injector;
     }
 
     @Override
@@ -98,29 +112,31 @@ class DirItem extends PathItem {
         return true;
     }
 
-    public FileItem addChildFile(Path fileName, FileTime lastModified, GraphicFactory graphicFactory) {
+    public FileItem<T> addChildFile(Path fileName, FileTime lastModified, GraphicFactory graphicFactory) {
         assert fileName.getNameCount() == 1;
         int i = getFileInsertionIndex(fileName.toString());
-        FileItem child = FileItem.create(getValue().resolve(fileName), lastModified, graphicFactory);
+
+        FileItem<T> child = FileItem.create(inject(getPath().resolve(fileName)), lastModified, graphicFactory, getProjector());
         getChildren().add(i, child);
         return child;
     }
 
-    public DirItem addChildDir(Path dirName, GraphicFactory graphicFactory) {
+    public DirItem<T> addChildDir(Path dirName, GraphicFactory graphicFactory) {
         assert dirName.getNameCount() == 1;
         int i = getDirInsertionIndex(dirName.toString());
-        DirItem child = DirItem.create(getValue().resolve(dirName), graphicFactory);
+
+        DirItem<T> child = DirItem.create(inject(getPath().resolve(dirName)), graphicFactory, getProjector(), getInjector());
         getChildren().add(i, child);
         return child;
     }
 
     private int getFileInsertionIndex(String fileName) {
-        ObservableList<TreeItem<Path>> children = getChildren();
+        ObservableList<TreeItem<T>> children = getChildren();
         int n = children.size();
         for(int i = 0; i < n; ++i) {
-            PathItem child = (PathItem) children.get(i);
+            PathItem<T> child = (PathItem<T>) children.get(i);
             if(!child.isDirectory()) {
-                String childName = child.getValue().getFileName().toString();
+                String childName = child.getPath().getFileName().toString();
                 if(childName.compareToIgnoreCase(fileName) > 0) {
                     return i;
                 }
@@ -130,12 +146,12 @@ class DirItem extends PathItem {
     }
 
     private int getDirInsertionIndex(String dirName) {
-        ObservableList<TreeItem<Path>> children = getChildren();
+        ObservableList<TreeItem<T>> children = getChildren();
         int n = children.size();
         for(int i = 0; i < n; ++i) {
-            PathItem child = (PathItem) children.get(i);
+            PathItem<T> child = (PathItem<T>) children.get(i);
             if(child.isDirectory()) {
-                String childName = child.getValue().getFileName().toString();
+                String childName = child.getPath().getFileName().toString();
                 if(childName.compareToIgnoreCase(dirName) > 0) {
                     return i;
                 }
@@ -147,17 +163,17 @@ class DirItem extends PathItem {
     }
 }
 
-class ParentChild {
-    private final DirItem parent;
-    private final PathItem child;
+class ParentChild<T> {
+    private final DirItem<T> parent;
+    private final PathItem<T> child;
 
-    public ParentChild(DirItem parent, PathItem child) {
+    public ParentChild(DirItem<T> parent, PathItem<T> child) {
         this.parent = parent;
         this.child = child;
     }
 
-    public DirItem getParent() { return parent; }
-    public PathItem getChild() { return child; }
+    public DirItem<T> getParent() { return parent; }
+    public PathItem<T> getChild() { return child; }
 }
 
 interface Reporter<I> {
@@ -167,41 +183,41 @@ interface Reporter<I> {
     void reportError(Throwable error);
 }
 
-class TopLevelDirItem<I> extends DirItem {
+class TopLevelDirItem<I, T> extends DirItem<T> {
     private final GraphicFactory graphicFactory;
     private final Reporter<I> reporter;
 
-    TopLevelDirItem(Path path, GraphicFactory graphicFactory, Reporter<I> reporter) {
-        super(path, graphicFactory.createGraphic(path, true));
+    TopLevelDirItem(T path, GraphicFactory graphicFactory, Function<T, Path> projector, Function<Path, T> injector, Reporter<I> reporter) {
+        super(path, graphicFactory.createGraphic(projector.apply(path), true), projector, injector);
         this.graphicFactory = graphicFactory;
         this.reporter = reporter;
     }
 
-    private ParentChild resolveInParent(Path relPath) {
+    private ParentChild<T> resolveInParent(Path relPath) {
         int len = relPath.getNameCount();
         if(len == 0) {
-            return new ParentChild(null, this);
+            return new ParentChild<>(null, this);
         } else if(len == 1) {
-            if(getValue().resolve(relPath).equals(getValue())) {
-                return new ParentChild(null, this);
+            if(getPath().resolve(relPath).equals(getValue())) {
+                return new ParentChild<>(null, this);
             } else {
-                return new ParentChild(this, getRelChild(relPath.getName(0)));
+                return new ParentChild<>(this, getRelChild(relPath.getName(0)));
             }
         } else {
-            PathItem parent = resolve(relPath.subpath(0, len - 1));
+            PathItem<T> parent = resolve(relPath.subpath(0, len - 1));
             if(parent == null || !parent.isDirectory()) {
-                return new ParentChild(null, null);
+                return new ParentChild<>(null, null);
             } else {
-                PathItem child = parent.getRelChild(relPath.getFileName());
-                return new ParentChild(parent.asDirItem(), child);
+                PathItem<T> child = parent.getRelChild(relPath.getFileName());
+                return new ParentChild<>(parent.asDirItem(), child);
             }
         }
     }
 
     private void updateFile(Path relPath, FileTime lastModified, I initiator) {
-        PathItem item = resolve(relPath);
+        PathItem<T> item = resolve(relPath);
         if(item == null || item.isDirectory()) {
-            sync(PathNode.file(getValue().resolve(relPath), lastModified), initiator);
+            sync(PathNode.file(getPath().resolve(relPath), lastModified), initiator);
         }
     }
 
@@ -218,18 +234,18 @@ class TopLevelDirItem<I> extends DirItem {
     }
 
     public void addDirectory(Path relPath, I initiator) {
-        PathItem item = resolve(relPath);
+        PathItem<T> item = resolve(relPath);
         if(item == null || !item.isDirectory()) {
-            sync(PathNode.directory(getValue().resolve(relPath), Collections.emptyList()), initiator);
+            sync(PathNode.directory(getPath().resolve(relPath), Collections.emptyList()), initiator);
         }
     }
 
     public void sync(PathNode tree, I initiator) {
         Path path = tree.getPath();
-        Path relPath = getValue().relativize(path);
-        ParentChild pc = resolveInParent(relPath);
-        DirItem parent = pc.getParent();
-        PathItem item = pc.getChild();
+        Path relPath = getPath().relativize(path);
+        ParentChild<T> pc = resolveInParent(relPath);
+        DirItem<T> parent = pc.getParent();
+        PathItem<T> item = pc.getChild();
         if(parent != null) {
             syncChild(parent, relPath.getFileName(), tree, initiator);
         } else if(item == null) { // neither path nor its parent present in model
@@ -244,17 +260,17 @@ class TopLevelDirItem<I> extends DirItem {
         }
     }
 
-    private void syncContent(DirItem dir, PathNode tree, I initiator) {
+    private void syncContent(DirItem<T> dir, PathNode tree, I initiator) {
         Set<Path> desiredChildren = new HashSet<>();
         for(PathNode ch: tree.getChildren()) {
             desiredChildren.add(ch.getPath());
         }
 
-        ArrayList<TreeItem<Path>> actualChildren = new ArrayList<>(dir.getChildren());
+        ArrayList<TreeItem<T>> actualChildren = new ArrayList<>(dir.getChildren());
 
         // remove undesired children
-        for(TreeItem<Path> ch: actualChildren) {
-            if(!desiredChildren.contains(ch.getValue())) {
+        for(TreeItem<T> ch: actualChildren) {
+            if(!desiredChildren.contains(getProjector().apply(ch.getValue()))) {
                 removeNode(ch, null);
             }
         }
@@ -265,48 +281,48 @@ class TopLevelDirItem<I> extends DirItem {
         }
     }
 
-    private void syncChild(DirItem parent, Path childName, PathNode tree, I initiator) {
-        PathItem child = parent.getRelChild(childName);
+    private void syncChild(DirItem<T> parent, Path childName, PathNode tree, I initiator) {
+        PathItem<T> child = parent.getRelChild(childName);
         if(child != null && child.isDirectory() != tree.isDirectory()) {
             removeNode(child, null);
         }
         if(child == null) {
             if(tree.isDirectory()) {
-                DirItem dirChild = parent.addChildDir(childName, graphicFactory);
-                reporter.reportCreation(getValue(), getValue().relativize(dirChild.getValue()), initiator);
+                DirItem<T> dirChild = parent.addChildDir(childName, graphicFactory);
+                reporter.reportCreation(getPath(), getPath().relativize(dirChild.getPath()), initiator);
                 syncContent(dirChild, tree, initiator);
             } else {
-                FileItem fileChild = parent.addChildFile(childName, tree.getLastModified(), graphicFactory);
-                reporter.reportCreation(getValue(), getValue().relativize(fileChild.getValue()), initiator);
+                FileItem<T> fileChild = parent.addChildFile(childName, tree.getLastModified(), graphicFactory);
+                reporter.reportCreation(getPath(), getPath().relativize(fileChild.getPath()), initiator);
             }
         } else {
             if(child.isDirectory()) {
                 syncContent(child.asDirItem(), tree, initiator);
             } else {
                 if(child.asFileItem().updateModificationTime(tree.getLastModified())) {
-                    reporter.reportModification(getValue(), getValue().relativize(child.getValue()), initiator);
+                    reporter.reportModification(getPath(), getPath().relativize(child.getPath()), initiator);
                 }
             }
         }
     }
 
     public void remove(Path relPath, I initiator) {
-        PathItem item = resolve(relPath);
+        PathItem<T> item = resolve(relPath);
         if(item != null) {
             removeNode(item, initiator);
         }
     }
 
-    private void removeNode(TreeItem<Path> node, I initiator) {
+    private void removeNode(TreeItem<T> node, I initiator) {
         signalDeletionRecursively(node, initiator);
         node.getParent().getChildren().remove(node);
     }
 
-    private void signalDeletionRecursively(TreeItem<Path> node, I initiator) {
-        for(TreeItem<Path> child: node.getChildren()) {
+    private void signalDeletionRecursively(TreeItem<T> node, I initiator) {
+        for(TreeItem<T> child: node.getChildren()) {
             signalDeletionRecursively(child, initiator);
         }
-        reporter.reportDeletion(getValue(), getValue().relativize(node.getValue()), initiator);
+        reporter.reportDeletion(getPath(), getPath().relativize(getProjector().apply(node.getValue())), initiator);
     }
 
     private void raise(Throwable t) {
